@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LearnHub - Lecture Progress Record</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+  body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #f4f7fa;
+    color: #333;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #0052cc;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 15px rgb(0 0 0 / 0.1);
+    padding: 1.5rem 2rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    background: #0052cc;
+    color: white;
+  }
+
+  th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e1e4e8;
+  }
+
+  tbody tr:hover {
+    background: #f0f5ff;
+  }
+
+  .progress-bar-container {
+    background: #e0e0e0;
+    border-radius: 10px;
+    width: 100%;
+    height: 14px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .progress-bar {
+    height: 14px;
+    background: #4caf50;
+    width: 0%;
+    border-radius: 10px;
+    transition: width 0.4s ease;
+  }
+
+  .status {
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    display: inline-block;
+    user-select: none;
+  }
+
+  .not-started {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .in-progress {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .completed {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  button {
+    background: #0052cc;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  button:hover {
+    background: #003d99;
+  }
+
+  @media (max-width: 600px) {
+    th, td {
+      padding: 8px 10px;
+      font-size: 0.9rem;
+    }
+    button {
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>Course Progress Record</h1>
+
+<div class="container" role="region" aria-label="Lecture progress list">
+  <table>
+    <thead>
+      <tr>
+        <th>Lecture Title</th>
+        <th>Duration</th>
+        <th>Progress</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="lectureList">
+      <!-- Lectures will be inserted here dynamically -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // Same lectures as video page - keep in sync
+  const lectures = [
+    { id: 1, title: "Introduction to Biology", duration: 600 },
+    { id: 2, title: "Cell Structure and Function", duration: 900 },
+    { id: 3, title: "Genetics Basics", duration: 1200 }
+  ];
+
+  function formatTime(seconds) {
+    seconds = Math.floor(seconds);
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function getStatus(watched, duration) {
+    if (watched === 0) return { text: 'Not Started', className: 'not-started' };
+    if (watched >= duration) return { text: 'Completed', className: 'completed' };
+    return { text: 'In Progress', className: 'in-progress' };
+  }
+
+  function createLectureRow(lecture) {
+    let watched = localStorage.getItem('progress_lecture_' + lecture.id);
+    watched = watched ? Number(watched) : 0;
+    const statusInfo = getStatus(watched, lecture.duration);
+    const progressPercent = Math.min((watched / lecture.duration) * 100, 100).toFixed(1);
+
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td>${lecture.title}</td>
+      <td>${formatTime(lecture.duration)}</td>
+      <td>
+        <div class="progress-bar-container" aria-label="Progress bar for ${lecture.title}">
+          <div class="progress-bar" style="width: ${progressPercent}%;"></div>
+        </div>
+        <small>${progressPercent}% watched</small>
+      </td>
+      <td><span class="status ${statusInfo.className}">${statusInfo.text}</span></td>
+      <td><button aria-label="Resume ${lecture.title}" onclick="location.href='video.html?id=${lecture.id}'">Resume</button></td>
+    `;
+
+    return tr;
+  }
+
+  const lectureList = document.getElementById('lectureList');
+  lectures.forEach(lecture => {
+    lectureList.appendChild(createLectureRow(lecture));
+  });
+</script>
+
+</body>
+</html>

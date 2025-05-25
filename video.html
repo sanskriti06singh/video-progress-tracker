@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LearnHub - Video Player</title>
+<style>
+  /* same styles as before */
+  body { font-family: Arial, sans-serif; max-width: 720px; margin: 2rem auto; padding: 1rem; background: #f0f4ff; }
+  h1 { color: #0052cc; text-align: center; }
+  video { width: 100%; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+  .info { margin-top: 1rem; }
+  .progress-info { font-weight: 600; margin-top: 0.5rem; color: #0052cc; }
+  .note { font-size: 0.85rem; margin-top: 1rem; color: #555; }
+</style>
+</head>
+<body>
+
+<h1 id="lectureTitle">Loading...</h1>
+
+<video id="videoPlayer" controls preload="metadata">
+  Sorry, your browser does not support the video tag.
+</video>
+
+<div class="info">
+  <div class="progress-info" id="progressInfo">Progress: 0%</div>
+  <div class="note">You cannot skip ahead; please watch the video in order.</div>
+</div>
+
+<script>
+  const backendUrl = 'http://localhost:3000';  // Change if hosted elsewhere
+  const userId = 'student1'; // Dummy fixed user ID
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const lectureId = urlParams.get('id') || '1';
+
+  let lectures = [];
+  let maxAllowedTime = 0;
+
+  const video = document.getElementById('videoPlayer');
+  const titleEl = document.getElementById('lectureTitle');
+  const progressInfo = document.getElementById('progressInfo');
+
+  // Fetch lectures from backend
+  async function loadLectures() {
+    try {
+      const res = await fetch(`${backendUrl}/lectures`);
+      lectures = await res.json();
+      const lecture = lectures.find(l => l.id.toString() === lectureId);
+      if (!lecture) {
+        titleEl.textContent = 'Lecture not found';
+        throw new Error('Lecture not found');
+      }
+      titleEl.textContent = lecture.title;
+      video.src = lecture.src;
+
+      // After video metadata loads, load user progress
+      video.addEventListener('loadedmetadata', async () => {
+        await loadUserProgress();
+        updateProgressInfo();
+      });
+    } catch (err) {
+      alert('Failed to load lectures or progress');
+      console.error(err);
+    }
+  }
+
+  // Load user progress from backend
+  async function loadUserProgress() {
+    try {
+      const res = await fetch(`${backendUrl}/progress/${userId}`);
+      const progressData = await res.json();
+      maxAllowedTime = progressData[lectureId] || 0;
+      video.currentTime = maxAllowedTime;
+    } catch (err) {
+      console.error('Error loading user progress:', err);
+    }
+  }
+
+  // Save progress to backend
+  async function saveUserProgress(progress) {
+    try {
+      await fetch(`${backendUrl}/progress/${userId}/${lectureId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progress })
+      });
+    } catch (err) {
+      console.error('Error saving progress:', err);
+    }
+  }
+
+  function updateProgressInfo() {
+    const percent = ((video.currentTime / video.duration) * 100) || 0;
+    progressInfo.textContent = `Progress: ${percent.toFixed(1)}%`;
+  }
+
+  video.addEventListener('timeupdate', () => {
+    if (video.currentTime > maxAllowedTime) {
+      maxAllowedTime = video.currentTime;
+      saveUserProgress(maxAllowedTime.toFixed(1));
+    }
+    updateProgressInfo();
+  });
+
+  video.addEventListener('seeking', () => {
+    if (video.currentTime > maxAllowedTime + 0.5) {
+      video.currentTime = maxAllowedTime;
+      alert("You cannot skip ahead. Please watch the video in order.");
+    }
+  });
+
+  loadLectures();
+
+</script>
+
+</body>
+</html>
